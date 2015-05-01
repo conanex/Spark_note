@@ -1,0 +1,26 @@
+環境：工研院8個node 
+
+運行失敗的code如下：
+
+//Total=19G
+val malware_data = sc.textFile(path+"malware")
+val malware_info = malware_data.map{line=>
+       var fields=line.split("\t")
+       if (fields(2)=="" ) fields(2)="XXX"
+       (fields(0).toString,MD_info(fields(1).toLong ,fields(2),fields(3),fields(4)  ))  
+}
+val dis=malware_info.distinct.filter(x => x._2.country!="XXX").map(x => ( (x._1,x._2.timestamp,x._2.family), (x._2.country,x._2.industry) ) )
+val index_dis=dis.map(x => (x._1,1L)).reduceByKey(_+_).filter(x =>x._2>1)
+//HERE
+val result=dis.join(index_dis).map(x => (x._1,x._2._1) )
+result.saveAsTextFile(path+"test/noise/data_noise")
+result.map(x => x._1._1).distinct.saveAsTextFile(path+"test/noise/guid_noise")
+
+運行失敗的地方：
+在HERE的地方跑完後的下一行指令都會掛掉(Job會fail) 
+觀察log檔發現一開始都會發生executor lost但是都沒有前兆
+我猜是因為大量資料做join造成的
+
+解決辦法:
+1.等它一直重跑 跑1個半小時就好了
+2.把executor調小(我調3個) 然後就好了
